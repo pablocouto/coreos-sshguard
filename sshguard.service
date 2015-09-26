@@ -1,0 +1,22 @@
+[Unit]
+Description=sshguard
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill %n
+ExecStartPre=-/usr/bin/docker rm %n
+ExecStartPre=/usr/bin/docker pull pablocouto/coreos-sshguard
+
+ExecStartPre=/bin/sh -c 'if /usr/sbin/iptables -N sshguard; then /usr/sbin/iptables -A sshguard -j ACCEPT; fi'
+ExecStartPre=/bin/sh -c 'if /usr/sbin/ip6tables -N sshguard; then /usr/sbin/ip6tables -A sshguard -j ACCEPT; fi'
+
+ExecStart=/bin/sh -c 'journalctl --no-pager -f -n0 -q -t sshd | /usr/bin/docker run -i --name=%n -v /dev/log:/dev/log --net=host --cap-add=NET_ADMIN --cap-add=NET_RAW pablocouto/coreos-sshguard >/dev/null'
+
+ExecStop=/usr/bin/docker stop %n
+ExecStop=/usr/bin/docker rm %n
+
+# my setup relies on sshguard accepting by default, so this is needed after sshguard flushes the chain at exit
+ExecStop=/bin/sh -c '/usr/sbin/iptables -A sshguard -j ACCEPT'
+ExecStop=/bin/sh -c '/usr/sbin/ip6tables -A sshguard -j ACCEPT'
