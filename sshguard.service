@@ -1,7 +1,7 @@
 [Unit]
 Description=sshguard
-After=docker.service
-Requires=docker.service
+After=network-online.target iptables-restore.service docker.service
+Requires=network-online.target docker.service
 
 [Service]
 TimeoutStartSec=0
@@ -20,3 +20,6 @@ ExecStop=/usr/bin/docker rm %n
 # my setup relies on sshguard accepting by default, so this is needed after sshguard flushes the chain at exit
 ExecStop=/bin/sh -c '/usr/sbin/iptables -A sshguard -j ACCEPT'
 ExecStop=/bin/sh -c '/usr/sbin/ip6tables -A sshguard -j ACCEPT'
+
+[Install]
+WantedBy=multi-user.target
